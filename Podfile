@@ -6,6 +6,7 @@ target 'ByteCoin' do
   use_frameworks!
 
   # Pods for ByteCoin
-  pod 'Alamofire' 
+  pod 'Alamofire'
+  pod 'SwiftyJSON'
 
 end

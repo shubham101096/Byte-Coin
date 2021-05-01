@@ -8,6 +8,7 @@
 
 import Foundation
 import Alamofire
+import SwiftyJSON
 
 protocol CoinManagerDelegate {
     func updateCoinPrice(_ coinManager: CoinManager, price: String, currency: String)
@@ -26,18 +27,32 @@ struct CoinManager {
     func getCoinPrice(for currency: String) {
         let url = baseURL + "/" + currency
         let params = ["apiKey": apiKey]
-        AF.request(url, method: .get, parameters: params).responseDecodable(of: CoinData.self) { response in
+        AF.request(url, method: .get, parameters: params).responseJSON { response in
             if let error = response.error {
                 self.delegate?.didFailWithError(self, error: error)
                 return
             }
-
-            print(response.value)
-            
-            if let rate = response.value?.rate {
-                let priceString = String(format: "%0.2f", rate)
-                self.delegate?.updateCoinPrice(self, price: priceString, currency: currency)
+            if let safeData = response.data {
+                do {
+                    let json = try JSON(data: safeData)
+                    print(json)
+                    guard let priceString = parseJSON(json) else {
+                        self.delegate?.didFailWithError(self, error: "Error parsing JSON" as! Error)
+                        return
+                    }
+                    self.delegate?.updateCoinPrice(self, price: priceString, currency: currency)
+                } catch {
+                    print(error)
+                }
             }
         }
+    }
+    
+    func parseJSON(_ json: JSON) -> String? {
+        if let price = json["rate"].double {
+            let priceString = String(format: "%0.2f", price)
+            return priceString
+        }
+        return nil
     }
 }
